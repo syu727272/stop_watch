@@ -8,11 +8,11 @@ COPY go.mod ./
 # (Check if go.sum exists before copying, or just skip if not present)
 # COPY go.sum ./
 
-# Download all dependencies
-RUN go mod download
-
 # Copy the source code
 COPY . .
+
+# Download all dependencies and generate go.sum
+RUN go mod tidy && go mod download
 
 # Build the application
 RUN go build -o main .
