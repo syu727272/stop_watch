@@ -1,20 +1,32 @@
-# Use an official Node.js runtime as a parent image
-FROM node:18-alpine
+# Stage 1: Build the Go application
+FROM golang:1.21-alpine AS builder
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
+# Copy go mod and sum files
+COPY go.mod ./
+# (Check if go.sum exists before copying, or just skip if not present)
+# COPY go.sum ./
 
-# Install any needed packages
-RUN npm ci
-
-# Bundle app source
+# Copy the source code
 COPY . .
 
-# Make port 3001 available to the world outside this container
+# Download all dependencies and generate go.sum
+RUN go mod tidy && go mod download
+
+# Build the application
+RUN go build -o main .
+
+# Stage 2: Run the application
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the binary from the builder stage
+COPY --from=builder /app/main .
+
+# Expose port 3001
 EXPOSE 3001
 
-# Define the command to run the app
-CMD ["node", "index.js"]
+# Command to run the application
+CMD ["./main"]
